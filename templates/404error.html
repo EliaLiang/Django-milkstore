@@ -1,0 +1,15 @@
+{% extends "base.html" %}  <!--加载菜单栏模版->
+{% block page-body %}
+<div class='errorimage'><img src="/static/404.jpg" alt=""></div>
+{% endblock %}
+
+{% block mystyle %}
+<!--图片居中样式-->
+<style>
+.errorimage{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+</style>
+{% endblock %}

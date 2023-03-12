@@ -1,0 +1,221 @@
+{% extends 'ShoppingApp/base.html' %}
+{% block breadcrumbs %}
+    {#    <script type="text/javascript">#}
+    {#        try {#}
+    {#            ace.settings.check('breadcrumbs', 'fixed')#}
+    {#        } catch (e) {#}
+    {#        }#}
+    {#    </script>#}
+
+    <ul class="breadcrumb">
+        <li>
+            <i class="ace-icon fa fa-home home-icon"></i>
+            <a href="{% url 'index' %}">Index</a>
+        </li>
+        <li class="active">Order details</li>
+    </ul><!-- /.breadcrumb -->
+
+    <!-- #section:basics/content.searchbox -->
+
+{% endblock %}
+{% block page-content %}
+    <div class="page-shopping-cart" id="shopping-cart">
+        <h4 class="cart-title">Order:{{ billId }}</h4>
+        <div class="cart-product clearfix">
+            <table>
+                <thead>
+                <tr class="cart-product-title">
+                    <th class="td-check">
+
+                    </th>
+                    <th class="td-product">goods</th>
+                    <th class="td-num">number</th>
+                    <th class="td-price">price($)</th>
+                    <th class="td-total">total price($)</th>
+                    <th class="td-do"></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="(item,index) in productList" :key="index">
+                    <td class="td-check"></td>
+                    <td class="td-product">
+                        <img :src="item.pro_img" width="98" height="98"/>
+                        <div class="product-info">
+                            <h3>[[ item.pro_name]]</h3>
+                            <p>description：[[ item.pro_description ]]&nbsp</p>
+                        </div>
+
+                        <div class="clearfix"></div>
+                    </td>
+                    <td class="td-num">
+                        <div class="product-num">
+
+                            <input type="text" class="num-input" v-model="item.pro_num" @input="search($event,index)"
+                                   @blur="check($event,index)" readonly>
+
+                        </div>
+                    </td>
+                    <td class="td-price">
+                        <p class="red-text">￥<span class="price-text">[[ item.pro_price.toFixed(2)]]</span></p>
+                    </td>
+                    <td class="td-total">
+                        <p class="red-text">￥<span
+                                class="total-text">[[(item.pro_price*item.pro_num).toFixed(2)]]</span></p>
+                    </td>
+                    <td class="td-do"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="cart-product-info">
+            {% if bill_status == "未支付" %}
+                <a class="btn-buy fr" href="javascript:;" @click="makebill">unpaid</a>
+            {% else %}
+                <a class="btn-buy fr" href="javascript:;" style="background: green;">paid</a>
+            {% endif %}
+            <p class="fr product-total">￥<span>[[ getTotal.totalPrice ]]</span></p>
+            <p class="fr check-num"><span>[[ getTotal.totalNum ]]</span>Total price：</p>
+        </div>
+    </div>
+{% endblock %}
+
+
+{% block page-scripts %}
+
+
+
+    <script>
+        new Vue({
+            el: '#shopping-cart',
+            delimiters: ['[[', ']]'],
+            data: {
+                productList: []
+            },
+            computed: {
+                isSelectAll: function () {
+                    //If the select of each piece of data in productList is true, return true, otherwise return false
+                    return this.productList.every(function (val) {
+                        return val.select
+                    });
+                },
+                getTotal: function () {
+                    //Get the data in productList where select is true。
+                    var _proList = this.productList.filter(function (val) {
+                        return val.select
+                    }), totalPrice = 0;
+                    for (var i = 0, len = _proList.length; i < len; i++) {
+                        //total price accumulation
+                        totalPrice += _proList[i].pro_num * _proList[i].pro_price;
+                    }
+                    //The number of selected products is _proList.length, and the total price is totalPrice
+                    return {totalNum: _proList.length, totalPrice: totalPrice.toFixed(2)}
+                }
+            },
+            created() {
+                this.getDataList();
+            },
+            methods: {
+                async getDataList() {
+                    //Get Exchange Master Record
+                    let data = {"id": {{billId}}};
+                    let res = await axiosget("{% url 'shop_shoppingbilldetaildata' %}", data);
+                    console.log(res);
+                    if (res.code == 200) {
+                        res.data.items.forEach((item, index, array) => {
+                            //execute code
+                            this.productList.push({
+                                id: item.id, pro_name: item.pro_name, pro_description: item.pro_description,
+                                pro_num: item.pro_num, pro_img: item.pro_img, pro_price: item.pro_price, select: true
+                            })
+                        })
+
+                    }
+                },
+                async makebill() {
+                    //pay bill
+                    let data = {"id": {{billId}}};
+                    let res = await axiospost("{% url 'shop_shoppingbilldetaildata' %}", data);
+                    console.log(res);
+                    if (res.code == 200) {
+
+                        window.location.href = "{% url 'shop_shoppingbilldetail'  %}?id=" +{{billId}};
+                    }
+                },
+                async deleteGoods(id) {
+                    let data = {id};
+                    let res = await axiosdelete("{% url 'shop_shoppingcardata' %}", data);
+                    console.log(res);
+                },
+                async ModifyGoods(id, nums) {
+                    let data = {id, nums};
+                    let res = await axiospost("{% url 'shop_shoppingcardata' %}", data);
+                    console.log(res);
+                },
+                selectProduct: function (_isSelect) {
+                    //Traversing productList, negate all
+                    for (var i = 0, len = this.productList.length; i < len; i++) {
+                        this.productList[i].select = !_isSelect;
+                    }
+                },//Delete selected (select=true) products
+                deleteProduct: function () {
+                    this.productList = this.productList.filter((item) => {
+                        if (item.select) {
+                            this.deleteGoods(item.id);
+                        }
+                        return !item.select
+                    })
+                    //send delete request
+                },
+                //delete one item
+                deleteOneProduct: function (index) {
+                    //Delete the records of productList according to the index
+                    this.deleteGoods(this.productList[index].id);
+                    this.productList.splice(index, 1);
+                    this.deleteGoods()
+                },
+                search: function (event, index) {
+                    let flag = new RegExp("^[1-9]([0-9])*$").test(event.target.value);
+                    if (!flag) {
+                        this.productList[index].pro_num = '';
+                    }
+                },
+                check: function (event, index) {
+                    if (event.target.value == '') {
+                        this.productList[index].pro_num = 0;
+                    }
+                    this.ModifyGoods(this.productList[index].id, this.productList[index].pro_num);
+                },
+                //number increase
+                add: function (index) {
+                    this.productList[index].pro_num++;
+                    this.ModifyGoods(this.productList[index].id, this.productList[index].pro_num);
+                },
+                //number decrease
+                minus: function (index) {
+                    if (this.productList[index].pro_num > 0) {
+                        this.productList[index].pro_num--;
+                    } else {
+                        this.productList[index].pro_num = 0;
+                    }
+
+                    this.ModifyGoods(this.productList[index].id, this.productList[index].pro_num);
+
+                }
+            },
+            mounted: function () {
+                //Add a select (whether selected) field to productList, the initial value is true
+                var _this = this;
+                //Add a select (whether selected) field to productList, the initial value is true
+                this.productList.map(function (item) {
+                    _this.$set(item, 'select', true);
+                })
+            }
+        })
+    </script>
+
+{% endblock %}
+
+{% block page-styles %}
+    <link rel="stylesheet" href="/static/shop/css/global.css">
+    <link rel="stylesheet" href="/static/shop/css/order.css">
+{% endblock %}

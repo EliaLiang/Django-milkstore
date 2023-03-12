@@ -1,0 +1,176 @@
+{% extends 'ShoppingApp/base.html' %}
+{% block breadcrumbs %}
+    {#    <script type="text/javascript">#}
+    {#        try {#}
+    {#            ace.settings.check('breadcrumbs', 'fixed')#}
+    {#        } catch (e) {#}
+    {#        }#}
+    {#    </script>#}
+
+    <ul class="breadcrumb">
+        <li>
+            <i class="ace-icon fa fa-home home-icon"></i>
+            <a href="{% url 'index' %}">Index</a>
+        </li>
+        <li class="active">add new item</li>
+    </ul><!-- /.breadcrumb -->
+
+    <!-- #section:basics/content.searchbox -->
+
+{% endblock %}
+{% block page-content %}
+    <div class="row">
+        <div class="col-xs-12">
+            <!-- PAGE CONTENT BEGINS -->
+            <form class="form-horizontal" role="form" enctype="multipart/form-data" id="uploadRectest">
+                <!-- #section:elements.form -->
+                <div class="form-group">
+                    <label class="col-sm-3 control-label no-padding-right" for="form-field-1"> name of item </label>
+                    <div class="col-sm-9">
+                        <input type="text"  placeholder="" class="col-xs-10 col-sm-5" name="name"/>
+                    </div>
+                </div>
+                 <div class="form-group">
+                    <label class="col-sm-3 control-label no-padding-right" for="form-field-1"> number of item </label>
+                    <div class="col-sm-9">
+                        <input type="number"  placeholder="" class="col-xs-10 col-sm-5"  name="nums"/>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label no-padding-right" for="form-field-1"> Uint price of items </label>
+                    <div class="col-sm-9">
+                        <input type="number"  placeholder="" class="col-xs-10 col-sm-5"  name="price"/>
+                    </div>
+                </div>
+                 <div class="form-group">
+                    <label class="col-sm-3 control-label no-padding-right" for="form-field-1"> describe </label>
+                    <div class="col-sm-9">
+                        <input type="text" placeholder="" class="col-xs-10 col-sm-5"  name="description"/>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label no-padding-right" for="form-field-1"> picture </label>
+{#                    <div class="col-sm-9">#}
+{#                        <input type="file"  placeholder="" class="col-xs-10 col-sm-5" name="pic"/>#}
+{#                    </div>#}
+                    <div class="col-md-6">
+                                                    <a href="javascript:sfzzmSc();" class="grids-item">
+                                                        <div id="sfzzmImg" class="grids-icon">
+                                                            <img style="width: 300px"
+                                                                 src="/static/images/gooddefault.jpg">
+                                                        </div>
+                                                        <div class="grids-txt">
+                                                            <span>view</span>
+                                                        </div>
+                                                    </a> <input style="display: none" name="pic" id="sfzzm" type="file"
+                                                                onchange="javascript:showpic(this,'sfzzm');"
+                                                                accept="image/*"
+                                                                multiple/>
+                                                </div>
+                </div>
+                <div class="clearfix form-actions">
+                    <div class="col-md-offset-3 col-md-9">
+                        <button class="btn btn-info"  @click="commitGoodsRec">
+                            <i class="ace-icon fa fa-check bigger-110"></i>
+                            upload
+                        </button>
+                        &nbsp; &nbsp; &nbsp;
+                        <button class="btn" type="reset">
+                            <i class="ace-icon fa fa-undo bigger-110"></i>
+                            clear
+                        </button>
+                    </div>
+                </div>
+                <div class="hr hr-24"></div>
+            </form>
+
+        </div><!-- /.col -->
+    </div><!-- /.row -->
+{% endblock %}
+
+
+{% block page-scripts %}
+
+
+    <script>
+        var vm = new Vue({
+            el: '#app',
+            // Separator: Modify the syntax of data displayed in vue to prevent conflicts with django
+            delimiters: ['[[', ']]'],
+            components: {},
+            data: {
+                name: "",
+                nums:0,
+                price:0,
+                description:""
+            },
+            created() {
+            },
+            methods: {
+                async getDataList() {
+                    //Get Exchange Master Record
+                    let data = {curPage: this.curPage, pageSize: this.pageSize, searchKey: this.searchKey};
+                    let res = await axiosget("", data);
+                    console.log(res);
+                    if (res.code == 200) {
+                        this.dataList = res.data.items;
+                    }
+                },
+                async commitGoodsRec()
+                {
+                    var data = new FormData($('#uploadRectest')[0]);
+                    var xhr = new XMLHttpRequest();
+                    //The xhr object contains an upload object, which has a progress event, which will be triggered continuously during the file upload process. We correspond to a processing function for this event, which will be called every time the event is triggered, so we can use this function to modify current progress
+                    xhr.upload.addEventListener('progress', this.on_progress, false);   
+                    xhr.open('POST', "{% url 'shop_addgoods' %}", true);  //Please change the url to upload url
+                    xhr.setRequestHeader('X-CSRFTOKEN', '{{ request.COOKIES.csrftoken }}');  
+                    xhr.send(data);   //send form
+                    xhr.onreadystatechange = () => {
+                        if (xhr.readyState == 4 || xhr.readyState == "complete") {
+                            //Jump to the details page
+                            window.location.href = "{% url 'index'  %}";
+                        }
+                        {#var json = JSON.parse(xhr.responseText);#}
+                        {#console.log(json)#}
+                    }
+                },
+                //Look at the upload function before looking at this function. This function can receive an evt (event) object (you can query the progress by yourself for details). It has 3 attributes lengthComputable, loaded, and total. The first attribute is a bool type, which represents whether it is supported, and the second represents the current upload size. The third is the total size, from which the percentage of real-time upload can be calculated
+                on_progress(evt) {       
+                    if (evt.lengthComputable) {
+                        var percent = Math.round((evt.loaded) * 100 / evt.total);
+                        console.log(percent);
+                        if (percent == 100) {
+                            percent = 99;
+                        }
+                    }
+                },
+            },
+            computed: {
+                // getters for computed properties
+            }
+        });
+         function sfzzmSc() {//Click on trigger h5File type
+            $("#sfzzm").click();
+        }
+        function showpic(obj, id) {//show picture
+            //var imgs = document.getElementById("sfzzmImg").getElementsByTagName("img");
+            for (var i = 0, file; file = obj.files[i]; i++) {
+                if (i > 0) {
+                    break;
+                }                
+                var reader = new FileReader();
+                reader.onload = function (e) {//read&show photo
+                    console.log(e);
+                    var htmlimg = '<img  style="margin-left:2px;width:300px; " id="' + e.timeStamp + '" class="min"  src="' + e.target.result + '" onclick="showBigPic(this)"/>';
+                    $("#" + id + "Img").html(htmlimg);
+                };
+                reader.readAsDataURL(file);
+
+            }
+        }
+    </script>
+{% endblock %}
+
+{% block page-styles %}
+
+{% endblock %}

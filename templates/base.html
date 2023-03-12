@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    {% load AppBase_tag %}
+    <title>{% sitetitle_tag %}</title>
+   {% block mystyle %}
+   {% endblock %}
+<script type="text/javascript" src="/static/js/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="/static/js/axios.js"></script>
+<script type="text/javascript" src="/static/js/lazyload.min.js"></script>
+</head>
+
+<body class="min-h-screen bg-gray-100 text-gray-900 flex justify-center dlbox">
+{% block page-body %}
+{% endblock %}
+{% block myscript %}
+{% endblock %}
+</body>
+</html>

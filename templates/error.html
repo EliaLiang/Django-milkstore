@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block mystyle %}
+
+    <link rel="stylesheet" type="text/css" href="/static/errorcss/normalize.css">
+    <link rel="stylesheet" type="text/css" href="/static/errorcss/demo.css">
+    <!--必要样式-->
+    <link rel="stylesheet" type="text/css" href="/static/errorcss/component.css">
+    <style type="text/css">
+        #Layer1 {
+            position: absolute;
+            width: 100%;
+            z-index: 2;
+            top: 60%;
+        }
+
+        .STYLE3 {
+            font-size: medium
+        }
+    </style>
+{% endblock %}
+{% block page-body %}
+    <div class="container demo-1">
+        <div class="content">
+            <div id="large-header" class="large-header" style="height: 917px;">
+                <canvas id="demo-canvas" width="1920" height="917"></canvas>
+                <h1 class="main-title">{{ code }}<br><span class="STYLE3">{{ message }}</span></h1>
+            </div>
+            <div id="Layer1">
+                <nav class="codrops-demos">
+                    <a href="{% url 'login' %}">Index</a>
+                    <a href="#" onclick="goback()">Back</a>
+                    <a href="https://404.life/">Online chatting</a>
+                    <a href="https://404.life/">Contact us</a>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block myscript %}
+    <script src="/static/errorcss/TweenLite.min.js"></script>
+    <script src="/static/errorcss/EasePack.min.js"></script>
+    <script src="/static/errorcss/rAF.js"></script>
+    <script src="/static/errorcss/demo-1.js"></script>
+    <script>
+        function goback() {
+            {#Xnumber 0refresh current page，1forward（cache），-1back one page（cache），-2back two pages（cache）；#}
+            history.go(-1)
+        }
+    </script>
+{% endblock %}

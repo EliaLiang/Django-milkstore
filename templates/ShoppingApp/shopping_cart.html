@@ -1,0 +1,232 @@
+{% extends 'ShoppingApp/base.html' %}
+{% block breadcrumbs %}
+    {#    <script type="text/javascript">#}
+    {#        try {#}
+    {#            ace.settings.check('breadcrumbs', 'fixed')#}
+    {#        } catch (e) {#}
+    {#        }#}
+    {#    </script>#}
+
+    <ul class="breadcrumb">
+        <li>
+            <i class="ace-icon fa fa-home home-icon"></i>
+            <a href="{% url 'index' %}">Index</a>
+        </li>
+        <li class="active">My cart</li>
+    </ul><!-- /.breadcrumb -->
+
+    <!-- #section:basics/content.searchbox -->
+
+{% endblock %}
+{% block page-content %}
+    <div class="page-shopping-cart" id="shopping-cart">
+        <h4 class="cart-title">goods list</h4>
+        <div class="cart-product clearfix">
+            <table>
+                <thead>
+                <tr class="cart-product-title">
+                    <th class="td-check">
+                        <input type="checkbox" class="check-span fl check-all" :class="{'check-true':isSelectAll}"
+                               @click="selectProduct(isSelectAll)" :checked="isSelectAll" id="checkAll"></input>select all
+                    </th>
+                    <th class="td-product">goods</th>
+                    <th class="td-num">number</th>
+                    <th class="td-price">price($)</th>
+                    <th class="td-total">total price($)</th>
+                    <th class="td-do">action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="(item,index) in productList" :key="index">
+                    <td class="td-check"><input type="checkbox" class="check-span" @click="item.select=!item.select"
+                                                :class="{'check-true':item.select}" :checked="item.select"/></td>
+                    <td class="td-product">
+                        <img :src="item.pro_img" width="98" height="98"/>
+                        <div class="product-info">
+                            <h3>[[ item.pro_name]]</h3>
+                            <p>Note：[[ item.pro_description ]]&nbsp</p>
+                        </div>
+
+                        <div class="clearfix"></div>
+                    </td>
+                    <td class="td-num">
+                        <div class="product-num">
+                            <a href="javascript:;" class="num-reduce num-do fl" @click="minus(index)"><span></span></a>
+                            <input type="text" class="num-input" v-model="item.pro_num" @input="search($event,index)"
+                                   @blur="check($event,index)">
+                            <a href="javascript:;" class="num-add num-do fr" @click="add(index)"><span></span></a>
+                        </div>
+                    </td>
+                    <td class="td-price">
+                        <p class="red-text">￥<span class="price-text">[[ item.pro_price.toFixed(2)]]</span></p>
+                    </td>
+                    <td class="td-total">
+                        <p class="red-text">￥<span
+                                class="total-text">[[(item.pro_price*item.pro_num).toFixed(2)]]</span></p>
+                    </td>
+                    <td class="td-do"><a href="javascript:;" class="product-delect"
+                                         @click="deleteOneProduct(index)">delete</a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="cart-product-info">
+            <a class="delect-product" href="javascript:;" @click="deleteProduct">delete</a>
+            <a class="keep-shopping" href="{% url 'index' %}">continue on shopping</a>
+            <a class="btn-buy fr" href="javascript:;" @click="createBillRecord">pay bills</a>
+            <p class="fr product-total">￥<span>[[ getTotal.totalPrice ]]</span></p>
+            <p class="fr check-num"><span>[[ getTotal.totalNum ]]</span>goods' total price：</p>
+        </div>
+    </div>
+{% endblock %}
+
+
+{% block page-scripts %}
+
+
+
+    <script>
+        new Vue({
+            el: '#shopping-cart',
+            delimiters: ['[[', ']]'],
+            data: {
+                productList: []
+            },
+            computed: {
+                isSelectAll: function () {
+                    //如果productList中每一条数据的select都为true，返回true，否则返回false;
+                    return this.productList.every(function (val) {
+                        return val.select
+                    });
+                },
+                getTotal: function () {
+                    //获取productList中select为true的数据。
+                    var _proList = this.productList.filter(function (val) {
+                        return val.select
+                    }), totalPrice = 0;
+                    for (var i = 0, len = _proList.length; i < len; i++) {
+                        //总价累加
+                        totalPrice += _proList[i].pro_num * _proList[i].pro_price;
+                    }
+                    //选择产品的件数就是_proList.length，总价就是totalPrice
+                    return {totalNum: _proList.length, totalPrice: totalPrice.toFixed(2)}
+                }
+            },
+            created() {
+                this.getDataList();
+            },
+            methods: {
+                async getDataList() {
+                    //获取交流主记录
+                    let data = {"id": 1};
+                    let res = await axiosget("{% url 'shop_shoppingcardata' %}", data);
+                    console.log(res);
+                    if (res.code == 200) {
+                        res.data.items.forEach((item, index, array) => {
+                            //执行代码
+                            this.productList.push({
+                                id: item.id, pro_name: item.pro_name, pro_description: item.pro_description,
+                                pro_num: item.pro_num, pro_img: item.pro_img, pro_price: item.pro_price, select: true
+                            })
+                        })
+
+                    }
+                },
+                async createBillRecord() {
+                    //获取交流主记录
+                    let items = "";
+                    for (var i = 0, len = this.productList.length; i < len; i++) {
+                        items = items + this.productList[i].id + "|"
+                    }
+                    let totalitem = this.getTotal;
+                    let data = {
+                        "id": 1,
+                        "items": items,
+                        "totalNum": totalitem.totalNum,
+                        "totalPrice": totalitem.totalPrice
+                    };
+                    let res = await axiospost("{% url 'shop_shoppingcar' %}", data);
+                    console.log(res);
+                    if (res.code == 200) {
+                        window.location.href = "{% url 'shop_shoppingbilldetail'  %}?id="+res.data.id;
+
+                    }
+                },
+                async deleteGoods(id) {
+                    let data = {id};
+                    let res = await axiosdelete("{% url 'shop_shoppingcardata' %}", data);
+                    console.log(res);
+                },
+                async ModifyGoods(id, nums) {
+                    let data = {id, nums};
+                    let res = await axiospost("{% url 'shop_shoppingcardata' %}", data);
+                    console.log(res);
+                },
+                selectProduct: function (_isSelect) {
+                    //遍历productList，全部取反
+                    for (var i = 0, len = this.productList.length; i < len; i++) {
+                        this.productList[i].select = !_isSelect;
+                    }
+                },//删除已经选中(select=true)的产品
+                deleteProduct: function () {
+                    this.productList = this.productList.filter((item) => {
+                        if (item.select) {
+                            this.deleteGoods(item.id);
+                        }
+                        return !item.select
+                    })
+                    //发送删除请求
+                },
+                //删除单条产品
+                deleteOneProduct: function (index) {
+                    //根据索引删除productList的记录
+                    this.deleteGoods(this.productList[index].id);
+                    this.productList.splice(index, 1);
+                    this.deleteGoods()
+                },
+                search: function (event, index) {
+                    let flag = new RegExp("^[1-9]([0-9])*$").test(event.target.value);
+                    if (!flag) {
+                        this.productList[index].pro_num = '';
+                    }
+                },
+                check: function (event, index) {
+                    if (event.target.value == '') {
+                        this.productList[index].pro_num = 0;
+                    }
+                    this.ModifyGoods(this.productList[index].id, this.productList[index].pro_num);
+                },
+                //数量增加
+                add: function (index) {
+                    this.productList[index].pro_num++;
+                    this.ModifyGoods(this.productList[index].id, this.productList[index].pro_num);
+                },
+                //数量减少
+                minus: function (index) {
+                    if (this.productList[index].pro_num > 0) {
+                        this.productList[index].pro_num--;
+                    } else {
+                        this.productList[index].pro_num = 0;
+                    }
+
+                    this.ModifyGoods(this.productList[index].id, this.productList[index].pro_num);
+
+                }
+            },
+            mounted: function () {
+                //为productList添加select（是否选中）字段，初始值为true
+                var _this = this;
+                //为productList添加select（是否选中）字段，初始值为true
+                this.productList.map(function (item) {
+                    _this.$set(item, 'select', true);
+                })
+            }
+        })
+    </script>
+
+{% endblock %}
+
+{% block page-styles %}
+    <link rel="stylesheet" href="/static/shop/css/global.css">
+    <link rel="stylesheet" href="/static/shop/css/order.css">
+{% endblock %}
